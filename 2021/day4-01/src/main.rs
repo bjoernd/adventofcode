@@ -58,6 +58,23 @@ impl BingoBoard {
             }
         }
     }
+
+    fn is_winning(&self) -> bool {
+        for m in &self.marker_matrix {
+            if !m.contains(&false) { // we have a line that is entirely 'true'
+                return true;
+            }
+        }
+
+        for i in 0..self.marker_matrix[0].len() {
+            let mut vert = true;
+            for m in &self.marker_matrix {
+                if m[i] == false { vert = false; break; }
+            }
+            if vert { return true; }
+        }
+        false
+    }
 }
 
 fn main() {
@@ -83,6 +100,11 @@ fn main() {
                 Ok(b) => { println!("{:?}", b.number_matrix); b },
                 Err(_) => { break },
             };
+            
+            if b.is_winning() {
+                println!("Winning board: {:?}", &b.number_matrix);
+            }
+
             boards.push(b);
         }
 
