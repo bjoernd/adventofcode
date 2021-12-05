@@ -17,7 +17,7 @@ struct Line {
 
 impl Line {
     fn from_string(line: &str) -> std::result::Result<Line, ScanError> {
-        let (mut start_x, mut start_y, mut end_x, mut end_y) =
+        let (start_x, start_y, end_x, end_y) =
             scan_fmt!(line, "{},{} -> {},{}", usize, usize, usize, usize)?;
 
         Ok(Line {
@@ -71,67 +71,73 @@ fn read_input(filename: &str) -> std::io::Result<(Vec<Line>, usize, usize)> {
         len = reader.read_line(&mut line)?;
     }
 
-    if dim_x > dim_y { dim_y = dim_x; }
-    if dim_y > dim_x { dim_x = dim_y; }
+    if dim_x > dim_y {
+        dim_y = dim_x;
+    }
+    if dim_y > dim_x {
+        dim_x = dim_y;
+    }
 
     Ok((line_vector, dim_x, dim_y))
 }
 
 struct Board {
-    max_x : usize,
-    max_y : usize,
+    max_x: usize,
+    max_y: usize,
     data: Vec<Vec<u32>>,
 }
 
 impl Board {
-    fn init_board(max_x : usize, max_y: usize) -> Board {
+    fn init_board(max_x: usize, max_y: usize) -> Board {
         let mut data = Vec::<Vec<u32>>::new();
         for _ in 0..max_y + 1 {
-            let mut x = Vec::<u32>::new();
-            for _ in 0..max_x + 1 {
-                x.push(0);
-            }
-            data.push(x);
+            data.push(vec![0; max_x + 1]);
         }
-        
+
         Board { max_x, max_y, data }
     }
 
-    fn apply(& mut self, line: Line) {
-        println!("apply( ({},{}) -- ({},{}) )", line.start_x, line.start_y, line.end_x, line.end_y);
-        if line.is_horizontal() { 
+    fn apply(&mut self, line: Line) {
+        println!(
+            "apply( ({},{}) -- ({},{}) )",
+            line.start_x, line.start_y, line.end_x, line.end_y
+        );
+        if line.is_horizontal() {
             if line.end_x > line.start_x {
                 let dx = line.end_x - line.start_x;
-                for x in 0..dx+1 {
+                for x in 0..dx + 1 {
                     self.data[line.start_x + x][line.start_y] += 1;
                 }
             } else {
                 let dx = line.start_x - line.end_x;
-                for x in 0..dx+1 {
+                for x in 0..dx + 1 {
                     self.data[line.end_x + x][line.start_y] += 1;
                 }
             }
         } else if line.is_vertical() {
             if line.end_y > line.start_y {
                 let dy = line.end_y - line.start_y;
-                for y in 0..dy+1 {
+                for y in 0..dy + 1 {
                     self.data[line.start_x][line.start_y + y] += 1;
                 }
             } else {
                 let dy = line.start_y - line.end_y;
-                for y in 0..dy+1 {
+                for y in 0..dy + 1 {
                     self.data[line.start_x][line.end_y + y] += 1;
                 }
             }
-
         } else {
-            let diff : usize = (line.end_x as isize - line.start_x as isize).abs() as usize;
+            let diff: usize = (line.end_x as isize - line.start_x as isize).abs() as usize;
 
             let mut dx: i32 = 1;
             let mut dy: i32 = 1;
 
-            if line.start_x > line.end_x { dx = -1; }
-            if line.start_y > line.end_y { dy = -1; }
+            if line.start_x > line.end_x {
+                dx = -1;
+            }
+            if line.start_y > line.end_y {
+                dy = -1;
+            }
 
             for i in 0..diff + 1 {
                 let newx = (line.start_x as i32 + (dx * i as i32)).abs() as usize;
@@ -141,11 +147,12 @@ impl Board {
         }
     }
 
+    /*
     fn print(&self) {
         for x in 0..self.max_x + 1 {
             for y in 0..self.max_y + 1 {
                 let val = self.data[y][x];
-                if val == 0 { 
+                if val == 0 {
                     print!(". ");
                 } else {
                     print!("{} ", val);
@@ -154,6 +161,7 @@ impl Board {
             println!();
         }
     }
+    */
 
     fn count_danger(&self) -> u32 {
         let mut result = 0;
@@ -202,6 +210,8 @@ fn main() -> std::io::Result<()> {
     if let Some(filename) = matches.value_of("FILE") {
         return run(filename);
     }
+
+    println!("Hello world!");
 
     Ok(())
 }
