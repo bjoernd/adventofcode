@@ -4,7 +4,7 @@ use core::num;
 use std::error::Error;
 use std::fs::File;
 use std::io::{self, BufRead};
-use std::marker;
+use std::{marker, fmt};
 use std::path::Path;
 use std::process::exit;
 
@@ -26,12 +26,14 @@ fn ws_line_to_vec(line: &str) -> Vec<u32> {
 struct BingoBoard {
     number_matrix : Vec<Vec<u32>>,
     marker_matrix : Vec<Vec<bool>>,
+    won : bool,
 }
 
 impl BingoBoard {
     fn from_lines(lines : & mut io::Lines<io::BufReader<File>>) -> Result<BingoBoard, u32> {
         let mut number_matrix: Vec<Vec<u32>> = Vec::new();
         let mut marker_matrix: Vec<Vec<bool>> = Vec::new();
+        let won = false;
         loop {
             let single_line = match lines.next() {
                 Some(s) => {s.unwrap()},
@@ -41,7 +43,7 @@ impl BingoBoard {
                        2. We hit EOF without reading anything -> signal an error
                        */
                     if number_matrix.len() > 0 {
-                        return Ok(BingoBoard { number_matrix, marker_matrix });
+                        return Ok(BingoBoard { number_matrix, marker_matrix, won });
                     } else {
                         return Err(1)
                     }
@@ -54,7 +56,7 @@ impl BingoBoard {
                 number_matrix.push(nums);
                 marker_matrix.push(markers);
             } else {
-                return Ok(BingoBoard { number_matrix, marker_matrix });
+                return Ok(BingoBoard { number_matrix, marker_matrix, won });
             }
         }
     }
@@ -75,12 +77,43 @@ impl BingoBoard {
         }
         false
     }
+
+    fn mark(& mut self, num:u32) -> () {
+        for row in 0..self.number_matrix.len() {
+            for col in 0..self.number_matrix[0].len() {
+                if self.number_matrix[row][col] == num {
+                    self.marker_matrix[row][col] = true;
+                }
+            }
+
+        }
+    }
+
+    fn sum_unmarked(&self) -> u32 {
+        let mut sum = 0;
+        for row in 0..self.number_matrix.len() {
+            for col in 0..self.number_matrix[0].len() {
+                if !self.marker_matrix[row][col] {
+                    sum += self.number_matrix[row][col];
+                }
+            }
+        }
+        sum
+    }
+}
+
+impl fmt::Display for BingoBoard {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "BOARD {:?}", self.number_matrix)
+    }
 }
 
 fn main() {
     // File hosts must exist in current path before this produces output
+    let mut values = Vec::<u32>::new();
+    let mut boards = Vec::<BingoBoard>::new();
     if let Ok(mut lines) = read_lines("./input") {
-        let mut values = Vec::<u32>::new();
+        
         if let Ok(line)  = lines.next().unwrap() {
             values = comma_line_to_vec(&line);
         }
@@ -93,23 +126,43 @@ fn main() {
             }
         }
 
-        let mut boards = Vec::<BingoBoard>::new();
-
         loop {
             let b = match BingoBoard::from_lines(& mut lines) {
-                Ok(b) => { println!("{:?}", b.number_matrix); b },
+                Ok(b) => { b },
                 Err(_) => { break },
             };
             
-            if b.is_winning() {
-                println!("Winning board: {:?}", &b.number_matrix);
-            }
-
+            println!("{}", b);
             boards.push(b);
         }
 
         println!("Found {} boards.", boards.len());
+    }
 
+    println!("Now making playing moves...");
+
+    for num in values {
+        let mut won_count = 0;
+        let board_count = boards.len();
+        for b in boards.iter() {
+            if b.is_winning() { won_count += 1 }
+        }
+
+        println!("NUM {} (won so far: {}/{})", num, won_count, boards.len());
+
+        for b in boards.iter_mut() {
+            b.mark(num);
+            if b.is_winning () && !b.won {
+                if won_count == board_count - 1 {
+                    println!("WIN! {}", b);
+                    let su = b.sum_unmarked();
+                    println!("   unmarked sum: {}", su);
+                    println!("   SOLUTION = {}", su * num);
+                    return;
+                }
+                b.won = true;
+            }
+        }
     }
 }
 
