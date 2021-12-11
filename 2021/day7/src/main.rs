@@ -22,7 +22,8 @@ fn read_input(filename: &str) -> std::io::Result<Vec<u32>> {
 }
 
 fn evaluate_cost(d0: u32, d1: u32) -> u32 {
-    (d0 as i32 - d1 as i32).abs() as u32
+    let absdiff = (d0 as i32 - d1 as i32).abs() as u32;
+    absdiff * (absdiff + 1) / 2
 }
 
 fn cost(data: &Vec<u32>, pos: u32) -> u32 {
